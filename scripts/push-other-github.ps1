@@ -1,19 +1,28 @@
-# Push this repo to a GitHub account that is NOT the one saved in Windows Credential Manager.
-# Usage (from disaster-platform folder):
-#   .\scripts\push-other-github.ps1 -GitHubUser "your-other-username" -RepoName "disaster-response-platform"
+# Push ONLY this repo to a second GitHub account.
+# Your main GitHub login stays the default for all other projects on this PC.
 #
-# Before running:
-# 1. Log into the OTHER GitHub account in the browser.
-# 2. Create an empty repo (no README) named $RepoName.
-# 3. Create a Personal Access Token (Classic): repo scope.
-#    Settings -> Developer settings -> Personal access tokens -> Generate new token (classic)
+# Usage:
+#   .\scripts\push-other-github.ps1 -GitHubUser "submission-username" -RepoName "disaster-response-platform"
+#
+# HTTPS (default): username is embedded in the remote URL so Windows Credential Manager
+# can store a separate PAT for this account without replacing your primary one.
+#
+# SSH (recommended if you push to both accounts often):
+#   1. Run .\scripts\setup-second-github-ssh.ps1 once
+#   2. .\scripts\push-other-github.ps1 -GitHubUser "..." -UseSsh -SshHostAlias "github-submit"
 
 param(
     [Parameter(Mandatory = $true)]
     [string]$GitHubUser,
 
     [Parameter(Mandatory = $false)]
-    [string]$RepoName = "disaster-response-platform"
+    [string]$RepoName = "disaster-response-platform",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseSsh,
+
+    [Parameter(Mandatory = $false)]
+    [string]$SshHostAlias = "github-submit"
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,16 +32,29 @@ if (-not (Test-Path ".git")) {
     Write-Error "No .git folder here. Run from disaster-platform after git init."
 }
 
-$remoteUrl = "https://github.com/$GitHubUser/$RepoName.git"
+if ($UseSsh) {
+    $remoteUrl = "git@${SshHostAlias}:${GitHubUser}/${RepoName}.git"
+} else {
+    # IMPORTANT: GitHubUser@ in URL keeps credentials separate from your primary account.
+    $remoteUrl = "https://${GitHubUser}@github.com/${GitHubUser}/${RepoName}.git"
+}
 
-Write-Host "Remote will be: $remoteUrl"
+Write-Host "This repo only — remote: $remoteUrl"
+Write-Host "Other folders on this PC keep using your normal GitHub account."
 Write-Host ""
-Write-Host "Step A — Remove wrong GitHub login from Windows (if push used old account):"
-Write-Host "  Win+R -> control /name Microsoft.CredentialManager"
-Write-Host "  Windows Credentials -> remove entries for git:https://github.com"
-Write-Host ""
-Write-Host "Step B — When git asks for password, use a PAT (not your GitHub password)."
-Write-Host ""
+
+if (-not $UseSsh) {
+    Write-Host "Before push (second account in browser):"
+    Write-Host "  1. Create empty repo: $RepoName"
+    Write-Host "  2. PAT (classic) with 'repo' scope for user: $GitHubUser"
+    Write-Host "  3. When prompted: username = $GitHubUser, password = PAT (not GitHub password)"
+    Write-Host ""
+    Write-Host "Do NOT delete all github.com credentials — that breaks your primary account."
+    Write-Host ""
+} else {
+    Write-Host "Using SSH alias '$SshHostAlias' — see scripts/setup-second-github-ssh.ps1"
+    Write-Host ""
+}
 
 $existing = git remote get-url origin 2>$null
 if ($LASTEXITCODE -eq 0) {
@@ -47,7 +69,9 @@ git push -u origin main
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Done: https://github.com/$GitHubUser/$RepoName"
 } else {
-    Write-Host "Push failed. Try signing in with the other account PAT, or run:"
-    Write-Host "  git credential-manager erase https://github.com"
-    Write-Host "Then run this script again."
+    Write-Host "Push failed."
+    if (-not $UseSsh) {
+        Write-Host "If it used the wrong account, set remote again with this script (username in URL)."
+        Write-Host "Or switch to SSH: setup-second-github-ssh.ps1 then -UseSsh"
+    }
 }

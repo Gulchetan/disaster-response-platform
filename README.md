@@ -45,6 +45,21 @@ Push **`disaster-platform/` as the repository root** (not the parent `founding/`
 
 Reviewers clone the repo, copy `.env.example` → `.env`, add their own Neon URL / Groq key, run migrations + seed, then start the API.
 
+### Push from a second GitHub account (keep your main login)
+
+You can keep your **primary** GitHub account for all other repos. Only this folder uses the **submission** account:
+
+1. Create an empty repo on the submission account.
+2. From `disaster-platform`:
+
+```powershell
+.\scripts\push-other-github.ps1 -GitHubUser "YOUR_SUBMISSION_USERNAME" -RepoName "disaster-response-platform"
+```
+
+The remote URL includes `YOUR_SUBMISSION_USERNAME@` so Windows stores a **separate** token; you do not need to log out of your main account.
+
+For many repos on two accounts, use SSH once: `.\scripts\setup-second-github-ssh.ps1`, then push with `-UseSsh`.
+
 ---
 
 ## Prerequisites
