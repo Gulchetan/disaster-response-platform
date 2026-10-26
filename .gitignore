@@ -1,0 +1,14 @@
+.env
+.env.local
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+pgdata/
+.idea/
+.vscode/
+*.egg-info/
+dist/
+build/

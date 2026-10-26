@@ -1,0 +1,68 @@
+{
+  "info": {
+    "name": "Disaster Response Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" },
+    { "key": "disasterId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Get Token (admin)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"admin\", \"password\": \"admin123\"}"
+        },
+        "url": "{{baseUrl}}/auth/token"
+      }
+    },
+    {
+      "name": "Create Disaster",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"Manhattan Flood\", \"description\": \"Heavy flooding has affected Manhattan, NYC.\", \"tags\": [\"flood\"]}"
+        },
+        "url": "{{baseUrl}}/disasters"
+      }
+    },
+    {
+      "name": "List Disasters (tag=flood)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/disasters?tag=flood"
+      }
+    },
+    {
+      "name": "Get Disaster",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/disasters/{{disasterId}}"
+      }
+    },
+    {
+      "name": "Nearby Resources",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/disasters/{{disasterId}}/resources?lat=40.7831&lng=-73.9712&radius=5"
+      }
+    },
+    {
+      "name": "Community Reports",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/disasters/{{disasterId}}/reports"
+      }
+    }
+  ]
+}
