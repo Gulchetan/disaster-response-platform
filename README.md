@@ -17,6 +17,7 @@ Push **`disaster-platform/` as the repository root** (not the parent `founding/`
 | `app/` | FastAPI application: routes, services, auth, schemas, DB models |
 | `alembic/` + `alembic.ini` | Creates PostGIS tables (`disasters`, `resources`, `external_cache`) |
 | `requirements.txt` | Pinned Python dependencies |
+| `.python-version` | Pins Python 3.12 so Render does not default to 3.14 |
 | `.env.example` | Documents every environment variable (no secrets) |
 | `.gitignore` | Prevents `.env` and `.venv/` from being committed |
 | `scripts/seed_data.py` | Loads the Manhattan flood demo disaster + 5 resources |
@@ -64,7 +65,7 @@ For many repos on two accounts, use SSH once: `.\scripts\setup-second-github-ssh
 
 ## Prerequisites
 
-- **Python 3.10+** (3.11 recommended; 3.14 is not required)
+- **Python 3.10–3.13** (3.12 recommended; do **not** use 3.14 — pinned packages such as `pydantic-core` have no 3.14 wheels)
 - **PostgreSQL with PostGIS** — [Neon](https://neon.tech) (recommended) or local Docker
 - Optional: a [Groq](https://console.groq.com) API key for live location extraction
 
@@ -159,6 +160,23 @@ uvicorn app.main:app --reload
 | Postman | Import `postman/Disaster-Platform.postman_collection.json` |
 
 Migrations detail: [MIGRATIONS.md](./MIGRATIONS.md).
+
+### Deploy on Render
+
+Render’s default Python is **3.14**. This project pins **3.12** in `.python-version` because `pydantic-core==2.27.1` and `asyncpg==0.30.0` have no 3.14 wheels; pip then tries to compile Rust and fails on Render’s read-only filesystem.
+
+After pushing `.python-version`, redeploy. Confirm the log says `Using Python version 3.12.x`, not `3.14.8`.
+
+If the service was created before that file existed, also set **Environment → `PYTHON_VERSION` = `3.12.11`** (fully qualified). That env var wins over `.python-version`.
+
+| Setting | Value |
+|---------|--------|
+| Runtime | Python 3 |
+| Build | `pip install -r requirements.txt` |
+| Start | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Pre-deploy (optional) | `alembic upgrade head` |
+
+Copy the same keys from `.env.example` into Render’s Environment page (`DATABASE_URL`, `JWT_SECRET`, and either Groq or the mock flags).
 
 ---
 
