@@ -20,11 +20,13 @@ param(
     [string]$SshHostAlias = "github-submit"
 )
 
-$ErrorActionPreference = "Stop"
+# Git writes expected messages to stderr; do not treat those as PowerShell errors.
+$ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot\..
 
 if (-not (Test-Path ".git")) {
     Write-Error "No .git folder here. Run from disaster-platform after git init."
+    exit 1
 }
 
 if ($UseSsh) {
@@ -50,11 +52,16 @@ if (-not $UseSsh) {
     Write-Host ""
 }
 
-$null = git remote get-url origin 2>$null
-if ($LASTEXITCODE -eq 0) {
+$remoteNames = @(git remote 2>$null | ForEach-Object { $_.Trim() })
+if ($remoteNames -contains "origin") {
     git remote set-url origin $remoteUrl
 } else {
     git remote add origin $remoteUrl
+}
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to set git remote origin."
+    exit 1
 }
 
 Write-Host "Pushing main to origin..."
@@ -62,10 +69,12 @@ git push -u origin main
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Done: https://github.com/$GitHubUser/$RepoName"
-} else {
-    Write-Host "Push failed."
-    if (-not $UseSsh) {
-        Write-Host "If it used the wrong account, run this script again (username is in the remote URL)."
-        Write-Host "Or use SSH: setup-second-github-ssh.ps1 then push with -UseSsh"
-    }
+    exit 0
 }
+
+Write-Host "Push failed."
+if (-not $UseSsh) {
+    Write-Host "If it used the wrong account, run this script again (username is in the remote URL)."
+    Write-Host "Or use SSH: setup-second-github-ssh.ps1 then push with -UseSsh"
+}
+exit 1
